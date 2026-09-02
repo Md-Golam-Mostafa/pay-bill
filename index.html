@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="bn" ng-app="billApp">
+
+<head>
+    <meta charset="UTF-8">
+    <title>পরামর্শক ফি বিল</title>
+    <!-- AngularJS লাইব্রেরি -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <!-- html2pdf Library for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* মূল কাগজের স্টাইল */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SolaimanLipi', 'Kalpurush', Arial, sans-serif;
+            background: #e9ecef;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* টপ বার */
+        .app-top-bar {
+            background: linear-gradient(135deg, #1a237e, #283593);
+            color: white;
+            padding: 18px 0;
+            text-align: center;
+            margin: -20px -20px 25px -20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .app-top-bar h1 {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .app-top-bar p {
+            font-size: 0.82em;
+            opacity: 0.85;
+            margin-top: 3px;
+        }
+
+        /* প্রিন্ট এরিয়ার বক্স */
+        .print-area {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
+            padding: 15mm 18mm;
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.12);
+            position: relative;
+            border-radius: 4px;
+        }
+
+        /* উপরের হেডার বক্সগুলো */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+
+        .header-box {
+            border: 1px solid #000;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .header-box input {
+            border: none;
+            border-bottom: 1px dotted #000;
+            width: 80%;
+            text-align: center;
+            outline: none;
+            font-family: inherit;
+            font-size: 14px;
+            background: transparent;
+        }
+
+        .header-box input:focus {
+            background: #fffde7;
+        }
+
+        /* মধ্যখানের শিরোনাম */
+        .main-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 5px;
+            text-decoration: underline;
+        }
+
+        .center-text {
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .project-code {
+            display: inline-block;
+            border: 1px solid #000;
+            padding: 2px 10px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            font-size: 16px;
+        }
+
+        /* ইনফরমেশন ফিল্ড */
+        .info-section {
+            width: 100%;
+            margin-top: 20px;
+            border-top: 1px solid #000;
+            border-left: 1px solid #000;
+        }
+
+        .info-row {
+            display: flex;
+            border-bottom: 1px solid #000;
+        }
+
+        .info-label {
+            width: 200px;
+            padding: 5px;
+            border-right: 1px solid #000;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-value {
+            flex: 1;
+            padding: 5px;
+            border-right: 1px solid #000;
+            display: flex;
+            align-items: center;
+        }
+
+        .info-value input {
+            width: 100%;
+            border: none;
+            border-bottom: 1px dotted #ccc;
+            outline: none;
+            font-family: inherit;
+            font-size: 14px;
+            background: transparent;
+            padding: 2px 0;
+        }
+
+        .info-value input:focus {
+            background: #fffde7;
+        }
+
+        /* মূল টেবিল */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 1px solid #000;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        /* হিসাবের অংশ */
+        .calc-box {
+            margin-top: -1px;
+            border: 1px solid #000;
+            padding: 10px;
+            position: relative;
+        }
+
+        .calc-box-title {
+            position: absolute;
+            top: -12px;
+            left: 10px;
+            background: white;
+            padding: 0 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .calculation-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 14px;
+            align-items: center;
+        }
+
+        .calculation-row span {
+            display: inline-block;
+        }
+
+        .dotted-input {
+            border: none;
+            border-bottom: 1px dotted #000;
+            width: 80px;
+            text-align: right;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .dotted-input:focus {
+            background: #fffde7;
+        }
+
+        .calc-total-box {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            margin: 10px 0;
+            padding: 8px 0;
+        }
+
+        .calc-total-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .in-words-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            align-items: center;
+        }
+
+        .in-words-text {
+            flex: 1;
+            text-align: center;
+            font-style: italic;
+            color: #333;
+        }
+
+        /* নিচের অংশ (ব্যাংক ও স্বাক্ষর) */
+        .footer-section {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .bank-info {
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .signature-area {
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .sign-line {
+            display: inline-block;
+            border-top: 1px solid #000;
+            width: 200px;
+            margin-top: 40px;
+            margin-bottom: 5px;
+        }
+
+        /* বাটন কন্টেইনার */
+        .btn-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .btn-container .btn-group {
+            display: inline-flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            font-size: 15px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1565c0, #1e88e5);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2e7d32, #43a047);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #c62828, #e53935);
+        }
+
+        .btn-outline {
+            background: white;
+            color: #1565c0;
+            border: 2px solid #1565c0;
+        }
+
+        .btn-outline:hover {
+            background: #1565c0;
+            color: white;
+        }
+
+        /* প্রিন্ট করার সময় — মাত্র ১ পেজ */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+
+            html,
+            body {
+                width: 190mm;
+                height: 277mm;
+                background: none;
+                padding: 0;
+                margin: 0;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                overflow: hidden !important;
+            }
+
+            .app-top-bar {
+                display: none !important;
+            }
+
+            .btn-container {
+                display: none !important;
+            }
+
+            .print-area {
+                box-shadow: none;
+                width: 190mm;
+                height: 277mm;
+                min-height: auto;
+                max-height: 277mm;
+                overflow: hidden !important;
+                margin: 0;
+                padding: 2mm 0 0 0;
+                border-radius: 0;
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+                page-break-before: avoid !important;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .print-area * {
+                page-break-inside: avoid !important;
+                page-break-after: avoid !important;
+            }
+
+            .print-area input {
+                border-bottom: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+            }
+
+            .top-header {
+                margin-bottom: 4px !important;
+                flex-shrink: 0;
+            }
+
+            .top-header .header-box {
+                padding: 3px;
+                font-size: 11px;
+            }
+
+            .top-header .header-box input {
+                font-size: 11px;
+            }
+
+            .main-title {
+                margin-top: 3px !important;
+                margin-bottom: 2px !important;
+                font-size: 15px !important;
+                flex-shrink: 0;
+            }
+
+            .center-text {
+                margin: 2px 0 !important;
+                font-size: 12px !important;
+            }
+
+            .info-section {
+                margin-top: 5px !important;
+                flex-shrink: 0;
+            }
+
+            .info-row {
+                min-height: auto;
+            }
+
+            .info-label {
+                padding: 2px 5px !important;
+                font-size: 11px !important;
+            }
+
+            .info-value {
+                padding: 2px 5px !important;
+            }
+
+            .info-value input {
+                font-size: 11px !important;
+            }
+
+            table {
+                margin-top: 5px !important;
+                flex-shrink: 0;
+            }
+
+            th,
+            td {
+                padding: 3px 6px !important;
+                font-size: 12px !important;
+            }
+
+            .calc-box {
+                margin-top: 3px !important;
+                padding: 5px 8px !important;
+                flex-shrink: 0;
+            }
+
+            .calc-box-title {
+                font-size: 12px !important;
+            }
+
+            .calculation-row {
+                margin: 1px 0 !important;
+                font-size: 11px !important;
+            }
+
+            .calc-total-box {
+                margin: 3px 0 !important;
+                padding: 2px 0 !important;
+            }
+
+            .calc-total-row {
+                margin: 2px 0 !important;
+                font-size: 12px !important;
+            }
+
+            .in-words-row {
+                margin-top: 2px !important;
+                font-size: 11px !important;
+            }
+
+            .footer-section {
+                margin-top: auto !important;
+                padding-top: 5px;
+                flex-shrink: 0;
+            }
+
+            .bank-info {
+                font-size: 12px !important;
+                line-height: 1.4 !important;
+            }
+
+            .sign-line {
+                margin-top: 15px !important;
+                width: 160px !important;
+            }
+
+            .signature-area {
+                font-size: 12px !important;
+            }
+        }
+
+        /* রেসপন্সিভ */
+        @media (max-width: 850px) {
+            .print-area {
+                width: 100%;
+                padding: 10mm;
+                min-height: auto;
+            }
+
+            .info-row {
+                flex-direction: column;
+            }
+
+            .info-label {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #000;
+            }
+
+            .info-value {
+                border-right: none;
+            }
+
+            .top-header {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+
+            .header-box {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .footer-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body ng-controller="BillController as vm">
+
+    <!-- টপ বার -->
+    <div class="app-top-bar">
+        <h1>🧾 পরামর্শক ফি বিল — Consultant Fee Bill</h1>
+        <p>ইনলাইন এডিটেবল বিল ফরম্যাট </p>
+    </div>
+
+    <!-- বাটন -->
+    <div class="btn-container">
+        <div class="btn-group">
+            <button class="btn btn-primary" ng-click="vm.printPage()">🖨️ প্রিন্ট করুন (Print)</button>
+            <button class="btn btn-success" ng-click="vm.downloadPDF()">📥 PDF ডাউনলোড (PDF)</button>
+            <button class="btn btn-outline" ng-click="vm.saveData()">💾 সেভ (Save)</button>
+            <button class="btn btn-danger" ng-click="vm.resetBill()">🔄 নতুন বিল (Reset)</button>
+        </div>
+    </div>
+
+    <!-- মূল বিল অংশ -->
+    <div class="print-area" id="billId">
+
+        <!-- ১. উপরের হেডার -->
+        <div class="top-header">
+            <div class="header-box" style="width: 280px;">
+                <table style="width:100%; border:none; margin:0;">
+                    <tr style="border:none;">
+                        <td style="border:none; padding:3px 5px; width:50%; text-align:left; font-size:13px;">বিল নং <input type="text" ng-model="vm.billNo" style="width:60px; border:none; border-bottom:1px dotted #000; font-size:13px; text-align:center;"></td>
+                        <td style="border:none; padding:3px 5px; width:50%; text-align:left; font-size:13px;">তারিখ <input type="text" ng-model="vm.date" style="width:60px; border:none; border-bottom:1px dotted #000; font-size:13px; text-align:center;"></td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="font-size: 12px; text-align: center; margin-top: 10px;">
+                টি. আর. ফরম নং ২১
+                <br>
+                (এস, আর ১৮৩ দ্রষ্টব্য)
+            </div>
+
+            <div class="header-box" style="width: 280px;">
+                <table style="width:100%; border:none; margin:0;">
+                    <tr style="border:none;">
+                        <td style="border:none; padding:3px 5px; width:50%; text-align:left; font-size:13px;">টোকেন নং <input type="text" ng-model="vm.tokenNo" style="width:60px; border:none; border-bottom:1px dotted #000; font-size:13px; text-align:center;"></td>
+                        <td style="border:none; padding:3px 5px; width:50%; text-align:left; font-size:13px;">তারিখ <input type="text" ng-model="vm.tokenDate" style="width:60px; border:none; border-bottom:1px dotted #000; font-size:13px; text-align:center;"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- ২. তারিখ ও শিরোনাম -->
+        <div style="text-align: center; margin-top: 20px;">
+            <input type="text" ng-model="vm.month"
+                style="border:none; border-bottom:1px solid #000; text-align:center; width: 150px; font-family: inherit; outline: none; font-size: 14px;">
+            মাস
+            <input type="text" ng-model="vm.year"
+                style="border:none; border-bottom:1px solid #000; text-align:center; width: 80px; font-family: inherit; outline: none; font-size: 14px;">
+            ২৩১২২
+        </div>
+
+        <div class="main-title">ব্যক্তি পরামর্শক ফি ব্যয়ের বিল</div>
+
+        <div class="center-text" style="font-weight: bold; margin-top: 10px;">
+            দপ্তরঃ <input type="text" ng-model="vm.deptName"
+                style="border:none; border-bottom:1px dotted #999; text-align:center; width: 350px; font-family: inherit; outline: none; font-size: 14px; font-weight: bold;">
+        </div>
+        <div class="center-text">
+            প্রকল্প কোড নং <span class="project-code">{{ vm.projectCode }}</span>
+        </div>
+
+        <!-- ৩. তথ্য বক্স -->
+        <div class="info-section">
+            <div class="info-row">
+                <div class="info-label">নাম</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.name" placeholder="নাম লিখুন">
+                </div>
+                <div class="info-label" style="width: 100px;">পদবী</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.designation" placeholder="পদবী">
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">এনআইডি নং</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.nid" placeholder="জাতীয় পরিচয়পত্র নম্বর">
+                </div>
+                <div class="info-label" style="width: 100px;">টিআইএন নং</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.tin" placeholder="TIN নম্বর">
+                </div>
+            </div>
+            <div class="info-row" style="border-bottom: none;">
+                <div class="info-label">মোবাইল নং</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.mobile" placeholder="মোবাইল নম্বর">
+                </div>
+                <div class="info-label" style="width: 100px;">নং</div>
+                <div class="info-value">
+                    <input type="text" ng-model="vm.employeeId" placeholder="কর্মচারী আইডি">
+                </div>
+            </div>
+        </div>
+
+        <!-- ৪. টেবিল -->
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 20%;">অর্থনৈতিক কোড</th>
+                    <th style="width: 60%;">সরবরাহকৃত সেবার বিবরণ</th>
+                    <th style="width: 20%;">পরিমাণ টাকা</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-right">
+                        <input type="text" ng-model="vm.econCode"
+                            style="border:none; border-bottom:1px dotted #999; text-align:right; width: 100%; font-family: monospace; outline: none; font-size: 14px;">
+                    </td>
+                    <td>
+                        <input type="text" ng-model="vm.serviceDescription"
+                            style="border:none; border-bottom:1px dotted #999; width: 100%; font-family: inherit; outline: none; font-size: 14px;">
+                    </td>
+                    <td class="text-right" style="font-weight: bold;">
+                        = <input type="number" ng-model="vm.baseAmount" ng-change="vm.calculate()"
+                            style="border:none; border-bottom:1px dotted #999; text-align:right; width: 100px; font-family: inherit; outline: none; font-size: 14px; font-weight: bold;">
+                        /-
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ৫. কর্তন ও পরিশোধ ক্যালকুলেশন -->
+        <div class="calc-box">
+            <div class="calc-box-title">কর্তন ও পরিশোধ</div>
+
+            <div class="calculation-row">
+                <span>১। স্ট্যাম্প ডিউটি</span>
+                <span style="color: #666; font-size: 12px;">(০.৫%)</span>
+                <span>= {{ vm.stampDuty | number:2 }}/-</span>
+            </div>
+            <div class="calculation-row">
+                <span>২। সেবার উপর মূসক (VAT)</span>
+                <span>= <input type="number" class="dotted-input" ng-model="vm.vatPercent"
+                        ng-change="vm.calculate()">%</span>
+                <span>= {{ vm.vatAmount | number:2 }}/-</span>
+            </div>
+            <div class="calculation-row">
+                <span>৩। ব্যক্তি কর্তৃক দেয় অগ্রীম আয়কর (AIT)</span>
+                <span>= <input type="number" class="dotted-input" ng-model="vm.aitPercent"
+                        ng-change="vm.calculate()">%</span>
+                <span>= {{ vm.aitAmount | number:2 }}/-</span>
+            </div>
+
+            <div class="calc-total-box">
+                <div class="calc-total-row">
+                    <span>মোট কর্তন ও পরিশোধ</span>
+                    <span>= {{ vm.totalDeduction | number:2 }}/-</span>
+                </div>
+                <div class="calc-total-row" style="font-size: 16px; color: #1a237e;">
+                    <span>প্রদেয় বিল টাকা</span>
+                    <span>= {{ vm.netPayable | number:2 }}/-</span>
+                </div>
+            </div>
+
+            <div class="in-words-row">
+                <span>টাকা কথায়</span>
+                <span class="in-words-text">{{ vm.netPayableInWords }}</span>
+            </div>
+        </div>
+
+        <!-- ৬. ব্যাংক তথ্য -->
+        <div class="footer-section">
+            <div class="bank-info">
+                ব্যাংকের নামঃ <input type="text" ng-model="vm.bankName"
+                    style="border:none; border-bottom:1px dotted #999; font-family: inherit; outline: none; font-size: 14px; width: 200px;">
+                <br>
+                হিসাব নং <input type="text" ng-model="vm.accountNo" class="dotted-input" style="width: 150px;">
+            </div>
+        </div>
+
+        <div class="footer-section" style="margin-top: 10px;">
+            <div></div>
+            <div class="signature-area">
+                পরামর্শক এর স্বাক্ষর ও সীল
+                <br>
+                <div class="sign-line"></div>
+                <br><br>
+                টিম এসোসিয়েট একাউন্টস
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        var app = angular.module('billApp', []);
+
+        app.controller('BillController', function ($scope, $window) {
+            var vm = this;
+
+            // ডিফল্ট ডেটা
+            vm.billNo = "";
+            vm.date = "";
+            vm.tokenNo = "";
+            vm.tokenDate = "";
+            vm.month = "";
+            vm.year = new Date().getFullYear();
+            vm.deptName = "";
+            vm.projectCode = "";
+            vm.name = "";
+            vm.designation = "";
+            vm.nid = "";
+            vm.tin = "";
+            vm.mobile = "";
+            vm.employeeId = "";
+            vm.econCode = "";
+            vm.serviceDescription = "পরামর্শক ফি";
+            vm.baseAmount = 0;
+            vm.vatPercent = 15;
+            vm.aitPercent = 10;
+            vm.stampDuty = 0;
+            vm.vatAmount = 0;
+            vm.aitAmount = 0;
+            vm.totalDeduction = 0;
+            vm.netPayable = 0;
+            vm.netPayableInWords = "";
+            vm.bankName = "";
+            vm.accountNo = "";
+
+            // লোকাল স্টোরেজ থেকে ডেটা লোড
+            function loadData() {
+                var saved = localStorage.getItem('consultantBillData');
+                if (saved) {
+                    try {
+                        var data = JSON.parse(saved);
+                        angular.extend(vm, data);
+                    } catch (e) { }
+                }
+            }
+
+            // লোকাল স্টোরেজে সেভ
+            vm.saveData = function () {
+                var data = {
+                    billNo: vm.billNo,
+                    date: vm.date,
+                    tokenNo: vm.tokenNo,
+                    tokenDate: vm.tokenDate,
+                    month: vm.month,
+                    year: vm.year,
+                    deptName: vm.deptName,
+                    projectCode: vm.projectCode,
+                    name: vm.name,
+                    designation: vm.designation,
+                    nid: vm.nid,
+                    tin: vm.tin,
+                    mobile: vm.mobile,
+                    employeeId: vm.employeeId,
+                    econCode: vm.econCode,
+                    serviceDescription: vm.serviceDescription,
+                    baseAmount: vm.baseAmount,
+                    vatPercent: vm.vatPercent,
+                    aitPercent: vm.aitPercent,
+                    bankName: vm.bankName,
+                    accountNo: vm.accountNo
+                };
+                localStorage.setItem('consultantBillData', JSON.stringify(data));
+                alert('✅ ডেটা সেভ হয়েছে!');
+            };
+
+            // হিসাব করার ফাংশন
+            vm.calculate = function () {
+                var base = parseFloat(vm.baseAmount) || 0;
+                var vatPct = parseFloat(vm.vatPercent) || 0;
+                var aitPct = parseFloat(vm.aitPercent) || 0;
+
+                // স্ট্যাম্প ডিউটি (০.৫%)
+                vm.stampDuty = Math.round(base * 0.005 * 100) / 100;
+
+                // VAT
+                vm.vatAmount = Math.round(base * vatPct / 100 * 100) / 100;
+
+                // AIT
+                vm.aitAmount = Math.round(base * aitPct / 100 * 100) / 100;
+
+                // মোট কর্তন
+                vm.totalDeduction = vm.stampDuty + vm.vatAmount + vm.aitAmount;
+
+                // নেট পেয়েবল
+                vm.netPayable = base - vm.totalDeduction;
+
+                // টাকার অক্ষরে রূপান্তর
+                vm.netPayableInWords = vm.numberToWords(Math.round(vm.netPayable));
+            };
+
+            // সংখ্যা থেকে বাংলা শব্দ
+            vm.numberToWords = function (num) {
+                if (num === 0) return 'শূন্য টাকা মাত্র';
+
+                var ones = ['', 'এক', 'দুই', 'তিন', 'চার', 'পাঁচ', 'ছয়', 'সাত', 'আট', 'নয়', 'দশ', 'এগারো', 'বারো', 'তেরো', 'চৌদ্দ', 'পনেরো', 'ষোলো', 'সতেরো', 'আঠারো', 'উনিশ', 'কুড়ি', 'একুশ', 'বাইশ', 'তেইশ', 'চব্বিশ', 'পঁচিশ', 'ছাব্বিশ', 'সাতাশ', 'আটাশ', 'উনত্রিশ', 'ত্রিশ'];
+                var tens = ['', '', 'কুড়ি', 'ত্রিশ', 'চল্লিশ', 'পঁচাশ', 'ষাট', 'সত্তর', 'আশি', 'নব্বে'];
+                var hundreds = 'শ';
+
+                var convertUnder1000 = function (n) {
+                    if (n === 0) return '';
+                    if (n < 30) return ones[n];
+                    if (n < 100) {
+                        var t = Math.floor(n / 10);
+                        var o = n % 10;
+                        return tens[t] + (o ? ' ' + ones[o] : '');
+                    }
+                    var h = Math.floor(n / 100);
+                    var rem = n % 100;
+                    var result = ones[h] + ' ' + hundreds;
+                    if (rem) {
+                        if (rem < 30) result += ' ' + ones[rem];
+                        else {
+                            var t2 = Math.floor(rem / 10);
+                            var o2 = rem % 10;
+                            result += ' ' + tens[t2] + (o2 ? ' ' + ones[o2] : '');
+                        }
+                    }
+                    return result;
+                };
+
+                if (num < 1000) {
+                    return convertUnder1000(num) + ' টাকা মাত্র';
+                }
+                if (num < 100000) {
+                    var h = Math.floor(num / 1000);
+                    var rem = num % 1000;
+                    var result = ones[h] + ' হাজার';
+                    if (rem) {
+                        result += ' ' + convertUnder1000(rem);
+                    }
+                    return result + ' টাকা মাত্র';
+                }
+                if (num < 10000000) {
+                    var lk = Math.floor(num / 100000);
+                    var rem2 = num % 100000;
+                    var result = ones[lk] + ' লক্ষ';
+                    if (rem2 >= 1000) {
+                        var th = Math.floor(rem2 / 1000);
+                        result += ' ' + ones[th] + ' হাজার';
+                        var rem3 = rem2 % 1000;
+                        if (rem3) result += ' ' + convertUnder1000(rem3);
+                    } else if (rem2 > 0) {
+                        result += ' ' + convertUnder1000(rem2);
+                    }
+                    return result + ' টাকা মাত্র';
+                }
+                return num.toLocaleString('bn-BD') + ' টাকা মাত্র';
+            };
+
+            // প্রিন্ট
+            vm.printPage = function () {
+                $window.print();
+            };
+
+            // PDF ডাউনলোড
+            vm.downloadPDF = function () {
+                var element = document.getElementById('billId');
+                // প্রিন্ট-ফ্রেন্ডলি ক্লোন তৈরি করা হচ্ছে
+                var clone = element.cloneNode(true);
+                clone.style.width = '190mm';
+                clone.style.height = '277mm';
+                clone.style.overflow = 'hidden';
+                clone.style.padding = '2mm 0 0 0';
+                clone.style.margin = '0';
+                clone.style.borderRadius = '0';
+                clone.style.boxShadow = 'none';
+                // ক্লোনের মধ্যে সব ইনপুটের border বন্ধ
+                var inputs = clone.querySelectorAll('input');
+                for (var i = 0; i < inputs.length; i++) {
+                    inputs[i].style.borderBottom = 'none';
+                    inputs[i].style.background = 'transparent';
+                }
+                document.body.appendChild(clone);
+                var opt = {
+                    margin: 0,
+                    filename: 'consultant-fee-bill-' + (vm.billNo || 'draft') + '.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        width: 720,
+                        windowWidth: 720,
+                        scrollY: 0,
+                        scrollX: 0
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: { mode: ['avoid-all'] }
+                };
+                html2pdf().set(opt).from(clone).save().then(function () {
+                    document.body.removeChild(clone);
+                });
+            };
+
+            // রিসেট
+            vm.resetBill = function () {
+                if (confirm('আপনি কি নতুন বিল তৈরি করতে চান? সব ডেটা মুছে যাবে।')) {
+                    localStorage.removeItem('consultantBillData');
+                    vm.billNo = "";
+                    vm.date = "";
+                    vm.tokenNo = "";
+                    vm.tokenDate = "";
+                    vm.month = "";
+                    vm.year = new Date().getFullYear();
+                    vm.deptName = "";
+                    vm.projectCode = "";
+                    vm.name = "";
+                    vm.designation = "";
+                    vm.nid = "";
+                    vm.tin = "";
+                    vm.mobile = "";
+                    vm.employeeId = "";
+                    vm.econCode = "";
+                    vm.serviceDescription = "পরামর্শক ফি";
+                    vm.baseAmount = 0;
+                    vm.vatPercent = 15;
+                    vm.aitPercent = 10;
+                    vm.bankName = "";
+                    vm.accountNo = "";
+                    vm.calculate();
+                }
+            };
+
+            // ইনিশিয়ালাইজ
+            loadData();
+            vm.calculate();
+        });
+    </script>
+</body>
+
+</html>
